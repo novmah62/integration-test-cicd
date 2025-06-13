@@ -1,19 +1,9 @@
-name: "Extract test data before testing"
-
+name: 'Prepare Test Data'
+description: 'Prepare test data for integration tests'
 runs:
-    using: "composite"
-    steps:
-        - name: Login to GitHub container registry
-          shell: bash
-          run: |
-              repo_owner=$(echo "${{env.INPUT_REPO_NAME}}" | cut -d'/' -f1)
-              echo "${{ env.GH_TOKEN }}" | docker login ghcr.io -u $repo_owner --password-stdin
-
-        - name: Checkout Odoo source repository
-          uses: actions/checkout@v4
-          with:
-              repository: ${{ env.REPOSITORY }}
-              ssh-key: ${{ env.GH_SSH_KEY }}
-              path: ${{ env.REPO_PATH }}
-              ref: ${{ env.INPUT_COMMIT_SHA }}
-              fetch-depth: 1
+  using: "composite"
+  steps:
+    - run: |
+        echo "Preparing test data..."
+        mkdir -p ${{ github.workspace }}/.github/scripts
+      shell: bash
