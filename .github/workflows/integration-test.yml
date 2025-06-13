@@ -25,6 +25,9 @@ jobs:
   integration-test:
     name: Integration test
     runs-on: test-server
+    permissions:
+      checks: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +36,7 @@ jobs:
         id: create-check-run
         with:
           name: "Integration test"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Test Preparation
         uses: ./.github/actions/prepare-test-data
