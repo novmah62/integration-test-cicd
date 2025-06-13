@@ -1,0 +1,113 @@
+name: "Execute Bash Command"
+inputs:
+    # Server info
+    host:
+        required: true
+    port:
+        required: true
+        default: 22
+    user:
+        required: true
+    ssh_key_text:
+        description: "SSH private key text"
+        required: true
+    script:
+        description: "Bash script to execute"
+        required: true
+    set-output:
+        description: "Will script return output or not (0|1)"
+        type: number
+        required: true
+        default: 0
+
+    # Proxy server info
+    proxy_host:
+        required: false
+    proxy_user:
+        required: false
+    proxy_port:
+        required: false
+        default: 22
+    proxy_ssh_key_text:
+        required: false
+outputs:
+    script-output:
+        description: "Output after execute script"
+        value: ${{ steps.execute-bash-command.outputs.output }}
+
+runs:
+    using: "composite"
+    steps:
+        - name: "Execute bash command"
+          id: execute-bash-command
+          shell: bash
+          run: |
+              function create_private_keyfile_from_content() {
+                content="$1"
+                key_file_path="$2"
+                mkdir -p $(dirname $key_file_path)
+                touch $key_file_path && chmod 600 $key_file_path
+                >$key_file_path
+                echo "$content" >>$key_file_path
+              } 
+
+              function update_ssh_config() {
+                  if [[ "${{inputs.proxy_host}}" != "" ]]; then
+                      return
+                  fi
+                  mkdir -p ~/.ssh
+                  touch ~/.ssh/config
+                  echo > ~/.ssh/config
+                  cat << EOF > ~/.ssh/config
+                  Host server
+                      HostName ${{inputs.host}}
+                      User ${{inputs.user}}
+                      Port ${{inputs.port}}
+                      StrictHostKeyChecking no
+                      ServerAliveInterval 60
+                      IdentityFile $server_key_file
+              EOF
+                  chmod 600 ~/.ssh/config
+              }
+
+              function update_ssh_config_with_proxy() {
+                  if [[ "${{inputs.proxy_host}}" == "" ]]; then
+                      return
+                  fi
+                  mkdir -p ~/.ssh
+                  touch ~/.ssh/config
+                  echo > ~/.ssh/config
+                  cat << EOF > ~/.ssh/config
+                  Host proxy_server
+                      HostName ${{inputs.proxy_host}}
+                      User ${{inputs.proxy_user}}
+                      Port ${{inputs.proxy_port}}
+                      StrictHostKeyChecking no
+                      ServerAliveInterval 60
+                      IdentityFile $proxy_server_key_file
+
+                  Host server
+                      HostName ${{inputs.host}}
+                      User ${{inputs.user}}
+                      Port ${{inputs.port}}
+                      StrictHostKeyChecking no
+                      ServerAliveInterval 60
+                      IdentityFile $server_key_file
+                      ProxyJump proxy_server
+              EOF
+                  chmod 600 ~/.ssh/config
+              }
+
+              server_key_file=${{ github.workspace }}/$(date +%s)_key
+              proxy_server_key_file=${{ github.workspace }}/$(date +%s)_proxy_key
+              create_private_keyfile_from_content "${{inputs.ssh_key_text}}" "$server_key_file"
+              create_private_keyfile_from_content "${{inputs.proxy_ssh_key_text}}" "$proxy_server_key_file"
+              update_ssh_config
+              update_ssh_config_with_proxy
+
+              if [ ${{ inputs.set-output }} -eq 1 ]; then
+                output=$(ssh server "${{ inputs.script }}")
+                echo "output=$output" >> "$GITHUB_OUTPUT"
+              else
+                ssh server "${{ inputs.script }}"
+              fi

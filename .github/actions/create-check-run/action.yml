@@ -1,0 +1,44 @@
+name: "Create check run"
+description: "Create check run for specific commit"
+inputs:
+    name:
+        description: "Name of Check Run"
+        required: true
+    status:
+        description: "Status of Check Run"
+        default: "in_progress"
+outputs:
+    check-run-id:
+        description: "Check Run ID"
+        value: ${{ steps.create-run-check.outputs.result }}
+runs:
+    using: "composite"
+    steps:
+        - uses: actions/github-script@v7
+          id: create-run-check
+          with:
+              github-token: ${{ env.GH_CHECK_RUNS_MANAGER_TOKEN }}
+              script: |
+                  const name = "${{inputs.name}}";
+                  const status = "${{inputs.status}}";
+                  const repo_data = core.getInput("repo_name").split("/");
+                  const commit_sha = core.getInput("commit_sha");
+                  const owner = repo_data[0];
+                  const repo = repo_data[1];
+                  const check_url = `${context.serverUrl}/${context.payload.repository.full_name}/actions/runs/${context.runId}`;
+
+                  const response = await github.rest.checks.create({
+                      owner,
+                      repo,
+                      head_sha: commit_sha,
+                      name,
+                      status,
+                      output: {
+                          title: name,
+                          summary: "",
+                          text: "",
+                      },
+                      details_url: check_url,
+                  });
+
+                  return response.data.id;

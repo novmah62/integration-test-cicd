@@ -1,0 +1,96 @@
+name: Test Integration
+
+on:
+  workflow_dispatch:
+
+env:
+  # Các biến môi trường cố định cho test
+  SERVER_HOST: 192.168.176.105
+  SERVER_USER: drewsec
+  SERVER_SSH_PORT: 22
+  SERVER_DEPLOY_PATH: /opt/odoo
+  SERVER_ODOO_URL: http://192.168.176.105:8069
+  SERVER_ODOO_DB_NAME: odoo
+  SERVER_DB_PASSWORD: odoo
+  ODOO_IMAGE_TAG: latest
+
+  # Các biến cần thiết cho workflows
+  LOCAL_BACKUP_FILE_PATH: ${{github.workspace}}/odoo.zip
+  SERVER_TEMPORARY_BACKUP_PATH: /tmp/odoo/backup/test_project/main
+  SERVER_LATEST_BACKUP_FILE_PATH: /tmp/odoo/backup/test_project/main/.odoo.zip
+  SERVER_CICD_SCRIPT_FOLDER: /tmp/odoo/cicd/test_project/main
+  CICD_SCRIPTS_PATH: ${{github.workspace}}/.github/scripts
+
+jobs:
+  integration-test:
+    name: Integration test
+    runs-on: test-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Check Run
+        uses: ./.github/actions/create-check-run
+        id: create-check-run
+        with:
+          name: "Integration test"
+
+      - name: Test Preparation
+        uses: ./.github/actions/prepare-test-data
+
+      - name: Make decision to create a new backup on server
+        run: |
+          echo "NEED_NEW_SERVER_BACKUP_FILE=1" >> $GITHUB_ENV
+
+      - name: Upload backup script file to server
+        uses: ./.github/actions/scp-ssh
+        with:
+          direction: "upload"
+          host: ${{env.SERVER_HOST}}
+          port: ${{env.SERVER_SSH_PORT}}
+          user: ${{env.SERVER_USER}}
+          ssh_key_text: ${{ secrets.SERVER_PRIVATE_KEY }}
+          local_file: ${{ env.CICD_SCRIPTS_PATH }}/server-backup.sh
+          server_file: ${{ env.SERVER_CICD_SCRIPT_FOLDER }}
+
+      - name: "Backup Odoo on server"
+        uses: ./.github/actions/ssh-script
+        id: backup-on-server
+        with:
+          host: ${{env.SERVER_HOST}}
+          port: ${{env.SERVER_SSH_PORT}}
+          user: ${{env.SERVER_USER}}
+          ssh_key_text: ${{ secrets.SERVER_PRIVATE_KEY }}
+          set-output: 1
+          script: |
+            bash ${{ env.SERVER_CICD_SCRIPT_FOLDER }}/server-backup.sh "${{env.SERVER_DEPLOY_PATH}}" "${{env.SERVER_ODOO_DB_NAME}}" "${{env.SERVER_DB_PASSWORD}}" "${{env.ODOO_IMAGE_TAG}}" 1 "${{env.SERVER_TEMPORARY_BACKUP_PATH}}"
+
+      - name: Update server backup file path variable
+        run: |
+          latest_backup_file_path=${{ steps.backup-on-server.outputs.script-output }}
+          if [[ -n "$latest_backup_file_path" ]]; then
+            echo "SERVER_LATEST_BACKUP_FILE_PATH=$latest_backup_file_path" >> $GITHUB_ENV
+          fi
+
+      - name: "Download backup file"
+        uses: ./.github/actions/scp-ssh
+        with:
+          direction: "download"
+          host: ${{env.SERVER_HOST}}
+          port: ${{env.SERVER_SSH_PORT}}
+          user: ${{env.SERVER_USER}}
+          ssh_key_text: ${{ secrets.SERVER_PRIVATE_KEY }}
+          local_file: ${{ env.LOCAL_BACKUP_FILE_PATH }}
+          server_file: ${{ env.SERVER_LATEST_BACKUP_FILE_PATH }}
+
+      - name: "Run Integration test"
+        id: run_integration_test
+        run: |
+          bash ${{env.CICD_SCRIPTS_PATH}}/run-integration-test.sh "${{env.LOCAL_BACKUP_FILE_PATH}}" "test_commit" "false"
+
+      - name: Update Check Run
+        uses: ./.github/actions/update-check-run
+        if: ${{always()}}
+        id: update-check-run
+        with:
+          check-run-id: ${{steps.create-check-run.outputs.check-run-id}}
+          conclusion: ${{ steps.run_integration_test.conclusion == 'success' && 'success' || 'failure' }}

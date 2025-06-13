@@ -1,0 +1,38 @@
+name: "Update check run"
+description: "Update check run"
+inputs:
+    check-run-id:
+        description: "ID of Check Run"
+        required: true
+    status:
+        description: "New Status of Check Run"
+        required: true
+        default: "completed"
+    conclusion:
+        description: "Conclusion of Check Run"
+        required: true
+        default: "success"
+
+runs:
+    using: "composite"
+    steps:
+        - uses: actions/github-script@v7
+          id: update-run-check
+          with:
+              github-token: ${{ env.GH_CHECK_RUNS_MANAGER_TOKEN }}
+              script: |
+                  const repo_data = core.getInput("repo_name").split("/");
+                  const owner = repo_data[0];
+                  const repo = repo_data[1];
+                  const check_run_id = "${{inputs.check-run-id}}";
+                  const status = "${{inputs.status}}";
+                  const conclusion = "${{inputs.conclusion}}";
+
+
+                  await github.rest.checks.update({
+                      owner,
+                      repo,
+                      check_run_id,
+                      status,
+                      conclusion,
+                  });
