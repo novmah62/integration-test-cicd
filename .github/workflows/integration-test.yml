@@ -36,7 +36,6 @@ jobs:
         id: create-check-run
         with:
           name: "Integration test"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Test Preparation
         uses: ./.github/actions/prepare-test-data
