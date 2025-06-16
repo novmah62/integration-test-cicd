@@ -6,7 +6,7 @@ on:
 env:
   # Các biến môi trường cố định cho test
   SERVER_HOST: localhost
-  SERVER_USER: os
+  SERVER_USER: ubuntu
   SERVER_SSH_PORT: 22
   SERVER_DEPLOY_PATH: /opt/odoo
   SERVER_ODOO_URL: http://localhost:8069
@@ -16,9 +16,9 @@ env:
 
   # Các biến cần thiết cho workflows
   LOCAL_BACKUP_FILE_PATH: ${{github.workspace}}/odoo.zip
-  SERVER_TEMPORARY_BACKUP_PATH: /tmp/odoo/backup/test_project/main
-  SERVER_LATEST_BACKUP_FILE_PATH: /tmp/odoo/backup/test_project/main/.odoo.zip
-  SERVER_CICD_SCRIPT_FOLDER: /tmp/odoo/cicd/test_project/main
+  SERVER_TEMPORARY_BACKUP_PATH: /tmp/odoo/backup/bep/main
+  SERVER_LATEST_BACKUP_FILE_PATH: /tmp/odoo/backup/bep/main/.odoo.zip
+  SERVER_CICD_SCRIPT_FOLDER: /tmp/odoo/cicd/bep/main
   CICD_SCRIPTS_PATH: ${{github.workspace}}/.github/scripts
 
 jobs:
