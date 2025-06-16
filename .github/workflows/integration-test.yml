@@ -5,11 +5,11 @@ on:
 
 env:
   # Các biến môi trường cố định cho test
-  SERVER_HOST: 192.168.176.105
-  SERVER_USER: drewsec
+  SERVER_HOST: localhost
+  SERVER_USER: os
   SERVER_SSH_PORT: 22
   SERVER_DEPLOY_PATH: /opt/odoo
-  SERVER_ODOO_URL: http://192.168.176.105:8069
+  SERVER_ODOO_URL: http://localhost:8069
   SERVER_ODOO_DB_NAME: odoo
   SERVER_DB_PASSWORD: odoo
   ODOO_IMAGE_TAG: latest
