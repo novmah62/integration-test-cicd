@@ -27,10 +27,23 @@ runs:
                   const status = "${{inputs.status}}";
                   const conclusion = "${{inputs.conclusion}}";
 
-                  await github.rest.checks.update({
+                  console.log('Updating check run with:', {
                       owner,
                       repo,
                       check_run_id,
                       status,
-                      conclusion,
+                      conclusion
                   });
+
+                  try {
+                      await github.rest.checks.update({
+                          owner,
+                          repo,
+                          check_run_id: parseInt(check_run_id),
+                          status,
+                          conclusion,
+                      });
+                  } catch (error) {
+                      console.error('Error updating check run:', error);
+                      throw error;
+                  }
