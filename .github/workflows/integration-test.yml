@@ -12,7 +12,7 @@ env:
   SERVER_ODOO_URL: http://localhost:8069
   SERVER_ODOO_DB_NAME: odoo
   SERVER_DB_PASSWORD: odoo
-  ODOO_IMAGE_TAG: latest
+  ODOO_IMAGE_TAG: 13
 
   # Các biến cần thiết cho workflows
   LOCAL_BACKUP_FILE_PATH: ${{github.workspace}}/odoo.zip
