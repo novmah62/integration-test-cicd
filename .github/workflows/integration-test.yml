@@ -17,7 +17,7 @@ env:
   # Các biến cần thiết cho workflows
   LOCAL_BACKUP_FILE_PATH: ${{github.workspace}}/odoo.zip
   SERVER_TEMPORARY_BACKUP_PATH: /tmp/odoo/backup/bep/main
-  SERVER_LATEST_BACKUP_FILE_PATH: /tmp/odoo/backup/bep/main/.odoo.zip
+  SERVER_LATEST_BACKUP_FILE_PATH: /tmp/odoo/backup/bep/main/*.zip
   SERVER_CICD_SCRIPT_FOLDER: /tmp/odoo/cicd/bep/main
   CICD_SCRIPTS_PATH: ${{github.workspace}}/.github/scripts
 
