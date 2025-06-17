@@ -63,9 +63,7 @@ get_config_value() {
 get_odoo_container_id() {
     cd $docker_compose_path
     image_tag=$1
-    docker compose ps -q -a |
-        xargs docker inspect --format '{{.Id}} {{.Config.Image}}' |
-        awk -v img="${image_tag}" '$2 == img {print $1}'
+    docker ps -q --filter "name=odoo-app" | head -n 1
 }
 
 execute_command_inside_odoo_container() {
