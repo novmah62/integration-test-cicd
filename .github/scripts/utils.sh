@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ODOO_CONFIG_FILE="$SERVER_DEPLOY_PATH/odoo.conf"
+export ODOO_CONFIG_FILE="/etc/odoo.conf"
 export ODOO_TEST_DATABASE_NAME="$SERVER_ODOO_DB_NAME"
 export ODOO_LOG_FILE_CONTAINER="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_LOG_FILE_HOST="$SERVER_DEPLOY_PATH/odoo.log"
