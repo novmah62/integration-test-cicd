@@ -1,10 +1,10 @@
 #!/bin/bash
 
-export ODOO_CONFIG_FILE="/opt/odoo/odoo.conf"
+export ODOO_CONFIG_FILE="$SERVER_DEPLOY_PATH/odoo.conf"
 export ODOO_TEST_DATABASE_NAME="$SERVER_ODOO_DB_NAME"
 export ODOO_LOG_FILE_CONTAINER="/var/log/odoo/odoo.log"
 export ODOO_LOG_FILE_HOST="/var/log/odoo/odoo.log"
-export ODOO_ADDONS_PATH="/opt/odoo/addons"
+export ODOO_ADDONS_PATH="$SERVER_DEPLOY_PATH/addons"
 
 function get_cicd_config_for_odoo_addon {
     addon_name=$1
@@ -83,7 +83,7 @@ function get_list_changed_addons_should_run_test {
         return
     fi
 
-    changed_files=$(git diff --name-only HEAD~1 HEAD)
+    changed_files=$(git diff --name-only "$commit_hash" "$commit_hash")
     
     changed_addons=""
     for file in $changed_files; do
@@ -207,7 +207,7 @@ function update_ignore_file_config_ruff {
 
 # declare all useful functions here
 function sad_emojis() {
-    echo "😢 😭 😞 😔 😟 😩 😫 😓 😥 😰 😨 😧 😦 🙁 ☹️ 😣 😖 😱 😡 🤬 😠 😤 😪 😒 😌 😕 😬 🙄 👾 🧟 💔 💩 🐛 🦗 🦟 🐜 🐝 🐞 🪲 🪳 🦂 🕷️ 🕸️ 🦠 🦂 🧠 🙀 🤢 🤮 🤧 🥺 😵 🤯 🥴 🤕 🤒 😷 🤐 🤫 🤥 🤔 💀 ☠️ 👹 👿 👻 😬 😮‍💨 😓 🤨 😔 🫥 🫠 🙃 🥹 😶 😶‍🌫️ 😐 😑 🫤 🫡 🥱 🫨 🤐 🤢 🤮 💔 💦 🫧 🧊 🧯 🛑 ⛔ 📛 🚫 ❌ ⭕ 🔄 🔙 🔚 ⚠️ ⛔ 🚫 🚳 🚭 🚯 🚱 🚷 📵 🔞 ‼️ ⁉️ ❓ ❔ ❕ ❗ 〽️ ⚠️ 🔅 🔆 💢"
+    echo "😢 😭 😞 😔 😟 😩 😫 😓 😥 😰 😨 😧 😦 🙁 ☹️ 😣 😖 😱 😡 🤬 😠 😤 😪 😒 😌 😕 😬 🙄 👾 🧟 💔 💩 🐛 🦗 🦟 🐜 🐝 🐞 🪲 🪳 🦂 🕷️ ��️ 🦠 🦂 🧠 🙀 🤢 🤮 🤧 🥺 😵 🤯 🥴 🤕 🤒 😷 🤐 🤫 🤥 🤔 💀 ☠️ 👹 👿 👻 😬 😮‍💨 😓 🤨 😔 🫥 🫠 🙃 🥹 😶 😶‍🌫️ 😐 😑 🫤 🫡 🥱 🫨 🤐 🤢 🤮 💔 💦 🫧 🧊 🧯 🛑 ⛔ 📛 🚫 ❌ ⭕ 🔄 🔙 🔚 ⚠️ ⛔ 🚫 🚳 🚭 🚯 🚱 🚷 📵 🔞 ‼️ ⁉️ ❓ ❔ ❕ ❗ 〽️ ⚠️ 🔅 🔆 💢"
 }
 
 function happy_emojis() {
