@@ -14,12 +14,18 @@ function get_cicd_config_for_odoo_addon {
 
 function get_config_value {
     param=$1
-    grep -q -E "^\s*\b${param}\b\s*=" "$ODOO_CONFIG_FILE"
-    if [[ $? == 0 ]]; then
-        value=$(grep -E "^\s*\b${param}\b\s*=" "$ODOO_CONFIG_FILE" | cut -d " " -f3 | sed 's/["\n\r]//g')
+    default_value=$2
+    if [ -f "$ODOO_CONFIG_FILE" ]; then
+        grep -q -E "^\s*\b${param}\b\s*=" "$ODOO_CONFIG_FILE"
+        if [[ $? == 0 ]]; then
+            value=$(grep -E "^\s*\b${param}\b\s*=" "$ODOO_CONFIG_FILE" | cut -d " " -f3 | sed 's/["\n\r]//g')
+            echo "$value"
+            return
+        fi
     fi
-    echo "$value"
+    echo "$default_value"
 }
+
 function get_changed_files_and_folders_addons_name {
     # Retrieve the names of files and folders that have been changed in the specified commit
     addons_path=$1
