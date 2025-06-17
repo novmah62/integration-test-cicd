@@ -5,7 +5,7 @@ on:
 
 env:
   # Các biến môi trường cố định cho test
-  SERVER_HOST: localhost
+  SERVER_HOST: 192.168.98.123
   SERVER_USER: ubuntu
   SERVER_SSH_PORT: 22
   SERVER_DEPLOY_PATH: /opt/odoo
