@@ -13,16 +13,16 @@ main() {
 }
 
 populate_variables() {
-    declare -g docker_compose_path="$1" # path to folder contains docker-compose.yml file - on host machine
-    declare -g db_name="$2"             # supplied by jenkins pipeline - config manually in pipeline
-    declare -g db_password="$3"
-    declare -g odoo_image_tag="$4" # odoo image tag - declared in docker compose file
+    declare -g docker_compose_path="/opt/odoo" # path to folder contains docker-compose.yml file - on host machine
+    declare -g db_name="odoo"             # supplied by jenkins pipeline - config manually in pipeline
+    declare -g db_password="odoo"
+    declare -g odoo_image_tag="latest" # odoo image tag - declared in docker compose file
 
     # this number will greater than 1 for re-run jobs, this happend when a job failed
     # the reason: a job failed because we are testing on an older db, so we should get the latest db when retry testing
     # there are many other reason but we will cover it later
-    declare -g job_attempt_number="$5"
-    declare -g host_backup_folder="$6" # the backup folder path on the host
+    declare -g job_attempt_number=1
+    declare -g host_backup_folder="/tmp/odoo/backup/bep/main" # the backup folder path on the host
     declare -g docker_backup_folder=/tmp/odoo-backup # the backup folder path inside the Odoo container
     declare -g config_file=/etc/odoo/odoo.conf  # path inside the Odoo container
 
