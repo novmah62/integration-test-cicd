@@ -20,6 +20,7 @@ env:
   SERVER_LATEST_BACKUP_FILE_PATH: /tmp/odoo/backup/bep/main/*.zip
   SERVER_CICD_SCRIPT_FOLDER: /tmp/odoo/cicd/bep/main
   CICD_SCRIPTS_PATH: ${{github.workspace}}/.github/scripts
+  CICD_UTILS_SCRIPTS_PATH: ${{github.workspace}}/.github/scripts/utils.sh
 
 jobs:
   integration-test:
