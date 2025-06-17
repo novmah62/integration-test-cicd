@@ -103,6 +103,7 @@ convert_datetime_string_to_timestamp() {
 create_backup_inside_container() {
     # Create sql and filestore backup inside the Odoo container
     # backup folder will contain *.zip files
+
     # The .zip file contains:
     #   - dump.sql : Oodo database dump file
     #   - filestore: Odoo filestore folder
@@ -171,7 +172,9 @@ create_sql_backup() {
     sql_file_path="${sub_backup_folder}/dump.sql"
     pgpass_path="~/.pgpass"
     execute_command_inside_odoo_container "touch $pgpass_path ; echo $db_host:$db_port:\"$db_name\":$db_user:$db_password > $pgpass_path ; chmod 0600 $pgpass_path"
-    execute_command_inside_odoo_container "pg_dump -h \"$db_host\" -U $db_user --no-owner --file \"$sql_file_path\" \"$db_name\""
+    # Giả sử đã cài client v13 trong container
+    execute_command_inside_odoo_container "/usr/lib/postgresql/13/bin/pg_dump -h \"$db_host\" -U $db_user --no-owner --file \"$sql_file_path\" \"$db_name\""
+
 }
 
 create_filestore_backup() {
