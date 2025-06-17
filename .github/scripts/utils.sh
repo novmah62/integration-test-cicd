@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ODOO_TEST_DATABASE_NAME="odoo_test_3"
+export ODOO_TEST_DATABASE_NAME="odoo_test_4"
 export ODOO_LOG_FILE_CONTAINER="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_LOG_FILE_HOST="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_ADDONS_PATH="$SERVER_DEPLOY_PATH/addons"
@@ -264,8 +264,7 @@ function start_db_container() {
         --mount type=bind,source=$DOCKER_FOLDER/postgresql,target=/etc/postgresql \
         -e POSTGRES_PASSWORD=odoo -e POSTGRES_USER=odoo -e POSTGRES_DB=postgres \
         --name db \
-        $DB_IMAGE_TAG \
-        -c 'config_file=/etc/postgresql/postgresql.conf'
+        $DB_IMAGE_TAG
 }
 
 function start_odoo_container() {
