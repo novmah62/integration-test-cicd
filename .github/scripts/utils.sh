@@ -2,8 +2,8 @@
 
 export ODOO_CONFIG_FILE="$SERVER_DEPLOY_PATH/odoo.conf"
 export ODOO_TEST_DATABASE_NAME="$SERVER_ODOO_DB_NAME"
-export ODOO_LOG_FILE_CONTAINER="/var/log/odoo/odoo.log"
-export ODOO_LOG_FILE_HOST="/var/log/odoo/odoo.log"
+export ODOO_LOG_FILE_CONTAINER="$SERVER_DEPLOY_PATH/odoo.log"
+export ODOO_LOG_FILE_HOST="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_ADDONS_PATH="$SERVER_DEPLOY_PATH/addons"
 
 function get_cicd_config_for_odoo_addon {
@@ -15,13 +15,11 @@ function get_cicd_config_for_odoo_addon {
 function get_config_value {
     param=$1
     default_value=$2
-    if [ -f "$ODOO_CONFIG_FILE" ]; then
-        grep -q -E "^\s*\b${param}\b\s*=" "$ODOO_CONFIG_FILE"
-        if [[ $? == 0 ]]; then
-            value=$(grep -E "^\s*\b${param}\b\s*=" "$ODOO_CONFIG_FILE" | cut -d " " -f3 | sed 's/["\n\r]//g')
-            echo "$value"
-            return
-        fi
+    docker_odoo_exec "grep -q -E \"^\s*\b${param}\b\s*=\" $ODOO_CONFIG_FILE"
+    if [[ $? == 0 ]]; then
+        value=$(docker_odoo_exec "grep -E \"^\s*\b${param}\b\s*=\" $ODOO_CONFIG_FILE | cut -d \" \" -f3 | sed 's/[\"\n\r]//g'")
+        echo "$value"
+        return
     fi
     echo "$default_value"
 }
@@ -478,3 +476,77 @@ function send_file_notification {
     send_telegram_file_default "$file_path" "$caption" || true
 }
 # ------------------- General notofication -------------------
+
+function update_config_file() {
+    docker_odoo_exec "sed -i \"s/^\s*command\s*.*//g\" $ODOO_CONFIG_FILE"
+    docker_odoo_exec "sed -i \"s/^\s*db_name\s*.*//g\" $ODOO_CONFIG_FILE"
+}
+
+function update_config_file_after_restoration() {
+    custom_addons=$(get_list_changed_addons_should_run_test "$ODOO_ADDONS_PATH" "$commit_hash" "$ignore_test")
+    tagged_custom_addons=$(echo $custom_addons | sed "s/,/,\//g" | sed "s/^/\//")
+    docker_odoo_exec "sed -i \"s/^\s*command\s*.*//g\" $ODOO_CONFIG_FILE"
+    docker_odoo_exec "echo -en \"\ncommand = \
+    --stop-after-init \
+    --workers 0 \
+    --database $ODOO_TEST_DATABASE_NAME \
+    --logfile $ODOO_LOG_FILE_CONTAINER \
+    --log-level error \
+    --update $custom_addons \
+    --init $custom_addons \
+    --test-tags ${tagged_custom_addons}\n\" >> $ODOO_CONFIG_FILE"
+}
+
+function copy_backup() {
+    odoo_container_id=$(get_odoo_container_id)
+    received_backup_file_name=$(basename $received_backup_file_path)
+    docker_odoo_exec "mkdir -p $odoo_container_store_backup_folder && chown -R odoo:odoo $odoo_container_store_backup_folder"
+    docker cp "$received_backup_file_path" $odoo_container_id:$odoo_container_store_backup_folder
+    docker_odoo_exec "cd $odoo_container_store_backup_folder && unzip -qo $received_backup_file_name && chown -R odoo:odoo $odoo_container_store_backup_folder"
+}
+
+function create_empty_db() {
+    docker_odoo_exec "PGPASSWORD=$SERVER_DB_PASSWORD psql -h $db_host -U $db_user -d postgres -c \"CREATE DATABASE ${ODOO_TEST_DATABASE_NAME} ENCODING 'UNICODE' LC_COLLATE 'C' TEMPLATE template0;\""
+}
+
+function restore_db() {
+    sql_dump_path="${odoo_container_store_backup_folder}/dump.sql"
+    docker_odoo_exec "PGPASSWORD=$SERVER_DB_PASSWORD psql -h $db_host -U $db_user -d $ODOO_TEST_DATABASE_NAME -f $sql_dump_path"
+}
+
+function restore_filestore() {
+    backup_filestore_path="${odoo_container_store_backup_folder}/filestore"
+    filestore_path="$data_dir/filestore"
+    docker_odoo_exec "mkdir -p $filestore_path && chown -R odoo:odoo $filestore_path"
+    docker_odoo_exec "cp -r $backup_filestore_path $filestore_path/$ODOO_TEST_DATABASE_NAME && chown -R odoo:odoo $filestore_path/$ODOO_TEST_DATABASE_NAME"
+}
+
+function send_telegram_notification() {
+    local message="$1"
+    local bot_token="$2"
+    local chat_id="$3"
+
+    if [ -z "$bot_token" ] || [ -z "$chat_id" ]; then
+        echo "Thiếu thông tin bot_token hoặc chat_id cho Telegram"
+        return
+    fi
+
+    curl -s -X POST "https://api.telegram.org/bot${bot_token}/sendMessage" \
+        -d "chat_id=${chat_id}" \
+        -d "text=${message}" \
+        -d "parse_mode=HTML"
+}
+
+function send_slack_notification() {
+    local message="$1"
+    local webhook_url="$2"
+
+    if [ -z "$webhook_url" ]; then
+        echo "Thiếu thông tin webhook_url cho Slack"
+        return
+    fi
+
+    curl -s -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"${message}\"}" \
+        "$webhook_url"
+}
