@@ -21,13 +21,11 @@ runs:
           with:
               github-token: ${{ github.token }}
               script: |
-                  const repo_data = core.getInput("repo_name").split("/");
-                  const owner = repo_data[0];
-                  const repo = repo_data[1];
+                  const owner = context.repo.owner;
+                  const repo = context.repo.repo;
                   const check_run_id = "${{inputs.check-run-id}}";
                   const status = "${{inputs.status}}";
                   const conclusion = "${{inputs.conclusion}}";
-
 
                   await github.rest.checks.update({
                       owner,
