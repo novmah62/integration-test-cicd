@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export ODOO_CONFIG_FILE=${{github.workspace}}/.github/odoo/etc/odoo.conf
-export ODOO_TEST_DATABASE_NAME="test_odoo_db"
+export ODOO_TEST_DATABASE_NAME="odoo_test"
 export ODOO_LOG_FILE_CONTAINER="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_LOG_FILE_HOST="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_ADDONS_PATH="$SERVER_DEPLOY_PATH/addons"
