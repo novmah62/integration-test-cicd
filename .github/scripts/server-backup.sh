@@ -130,10 +130,27 @@ create_backup_inside_container() {
 copy_backup_to_host() {
     backup_file_path=$1
     odoo_container_id=$(get_odoo_container_id $odoo_image_tag)
+    
+    # Tạo thư mục backup trên host nếu chưa tồn tại
     [ ! -d "$host_backup_folder" ] && mkdir -p "$host_backup_folder"
+    
+    # Kiểm tra xem file có tồn tại trong container không
+    if ! execute_command_inside_odoo_container "[ -f \"$backup_file_path\" ]"; then
+        echo "Error: Backup file $backup_file_path does not exist in container"
+        exit 1
+    fi
+    
+    # Sao chép file từ container ra host
     docker cp $odoo_container_id:$backup_file_path $host_backup_folder
+    
+    # Kiểm tra xem file đã được sao chép thành công chưa
     latest_backup_file_name=$(basename $backup_file_path)
-    echo $host_backup_folder/$latest_backup_file_name
+    if [ ! -f "$host_backup_folder/$latest_backup_file_name" ]; then
+        echo "Error: Failed to copy backup file to host"
+        exit 1
+    fi
+    
+    echo "$host_backup_folder/$latest_backup_file_name"
 }
 
 get_latest_backup_zip_file_inside_container() {

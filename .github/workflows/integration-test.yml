@@ -83,7 +83,8 @@ jobs:
           user: ${{env.SERVER_USER}}
           ssh_key_text: ${{ secrets.SERVER_PRIVATE_KEY }}
           local_file: ${{ env.LOCAL_BACKUP_FILE_PATH }}
-          server_file: ${{ env.SERVER_LATEST_BACKUP_FILE_PATH }}
+          server_file: ${{ env.SERVER_TEMPORARY_BACKUP_PATH }}/*.zip
+          include_file_name: "yes"
 
       - name: "Run Integration test"
         id: run_integration_test
