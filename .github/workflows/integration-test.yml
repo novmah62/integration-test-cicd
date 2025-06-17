@@ -21,6 +21,7 @@ env:
   SERVER_CICD_SCRIPT_FOLDER: /tmp/odoo/cicd/bep/main
   CICD_SCRIPTS_PATH: ${{github.workspace}}/.github/scripts
   CICD_UTILS_SCRIPTS_PATH: ${{github.workspace}}/.github/scripts/utils.sh
+  ODOO_CONFIG_FILE: ${{github.workspace}}/.github/odoo/etc/odoo.conf
 
 jobs:
   integration-test:
