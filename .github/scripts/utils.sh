@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ODOO_TEST_DATABASE_NAME="odoo_test_2"
+export ODOO_TEST_DATABASE_NAME="odoo_test_7"
 export ODOO_LOG_FILE_CONTAINER="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_LOG_FILE_HOST="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_ADDONS_PATH="$SERVER_DEPLOY_PATH/addons"
