@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ODOO_TEST_DATABASE_NAME="odoo_test_2"
+export ODOO_TEST_DATABASE_NAME="odoo_test_3"
 export ODOO_LOG_FILE_CONTAINER="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_LOG_FILE_HOST="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_ADDONS_PATH="$SERVER_DEPLOY_PATH/addons"
@@ -505,7 +505,7 @@ function copy_backup() {
 }
 
 function create_empty_db() {
-    docker_odoo_exec "PGPASSWORD=$SERVER_DB_PASSWORD psql -h $db_host -U $db_user -d postgres -c \"CREATE DATABASE ${ODOO_TEST_DATABASE_NAME} ENCODING 'UNICODE' LC_COLLATE 'C' TEMPLATE template0;\""
+    docker_odoo_exec "psql -h \"$db_host\" -U $db_user postgres -c \"CREATE DATABASE ${ODOO_TEST_DATABASE_NAME};\""
 }
 
 function restore_db() {
