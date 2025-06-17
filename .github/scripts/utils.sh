@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ODOO_CONFIG_FILE="ODOO_CONF_PATH=${ODOO_CONF_PATH:-/etc/odoo/odoo.conf}"
+export ODOO_CONFIG_FILE="/etc/odoo/odoo.conf"
 export ODOO_TEST_DATABASE_NAME="$SERVER_ODOO_DB_NAME"
 export ODOO_LOG_FILE_CONTAINER="$SERVER_DEPLOY_PATH/odoo.log"
 export ODOO_LOG_FILE_HOST="$SERVER_DEPLOY_PATH/odoo.log"
@@ -15,9 +15,9 @@ function get_cicd_config_for_odoo_addon {
 function get_config_value {
     param=$1
     default_value=$2
-    docker_odoo_exec "grep -q -E \"^\s*\b${param}\b\s*=\" $ODOO_CONFIG_FILE"
+    docker_odoo_exec "grep -q -E \"^\s*\b${param}\b\s*=\" $ODOO_CONF_PATH"
     if [[ $? == 0 ]]; then
-        value=$(docker_odoo_exec "grep -E \"^\s*\b${param}\b\s*=\" $ODOO_CONFIG_FILE | cut -d \" \" -f3 | sed 's/[\"\n\r]//g'")
+        value=$(docker_odoo_exec "grep -E \"^\s*\b${param}\b\s*=\" $ODOO_CONF_PATH | cut -d \" \" -f3 | sed 's/[\"\n\r]//g'")
         echo "$value"
         return
     fi
@@ -478,14 +478,14 @@ function send_file_notification {
 # ------------------- General notofication -------------------
 
 function update_config_file() {
-    docker_odoo_exec "sed -i \"s/^\s*command\s*.*//g\" $ODOO_CONFIG_FILE"
-    docker_odoo_exec "sed -i \"s/^\s*db_name\s*.*//g\" $ODOO_CONFIG_FILE"
+    docker_odoo_exec "sed -i \"s/^\s*command\s*.*//g\" $ODOO_CONF_PATH"
+    docker_odoo_exec "sed -i \"s/^\s*db_name\s*.*//g\" $ODOO_CONF_PATH"
 }
 
 function update_config_file_after_restoration() {
     custom_addons=$(get_list_changed_addons_should_run_test "$ODOO_ADDONS_PATH" "$commit_hash" "$ignore_test")
     tagged_custom_addons=$(echo $custom_addons | sed "s/,/,\//g" | sed "s/^/\//")
-    docker_odoo_exec "sed -i \"s/^\s*command\s*.*//g\" $ODOO_CONFIG_FILE"
+    docker_odoo_exec "sed -i \"s/^\s*command\s*.*//g\" $ODOO_CONF_PATH"
     docker_odoo_exec "echo -en \"\ncommand = \
     --stop-after-init \
     --workers 0 \
@@ -494,7 +494,7 @@ function update_config_file_after_restoration() {
     --log-level error \
     --update $custom_addons \
     --init $custom_addons \
-    --test-tags ${tagged_custom_addons}\n\" >> $ODOO_CONFIG_FILE"
+    --test-tags ${tagged_custom_addons}\n\" >> $ODOO_CONF_PATH"
 }
 
 function copy_backup() {
