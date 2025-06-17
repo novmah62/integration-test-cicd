@@ -1,10 +1,10 @@
 #!/bin/bash
 
-export ODOO_CONFIG_FILE="/etc/odoo/odoo.conf"
-export ODOO_TEST_DATABASE_NAME="odoo_test"
+export ODOO_CONFIG_FILE="/opt/odoo/odoo.conf"
+export ODOO_TEST_DATABASE_NAME="$SERVER_ODOO_DB_NAME"
 export ODOO_LOG_FILE_CONTAINER="/var/log/odoo/odoo.log"
 export ODOO_LOG_FILE_HOST="/var/log/odoo/odoo.log"
-export ODOO_ADDONS_PATH="/mnt/extra-addons"
+export ODOO_ADDONS_PATH="/opt/odoo/addons"
 
 function get_cicd_config_for_odoo_addon {
     addon_name=$1
@@ -77,36 +77,29 @@ function get_list_changed_addons_should_run_test {
     addons_path=$1
     commit_hash=$2
     ignore_test=$3
-    list_changed_addons=$(get_list_changed_addons $addons_path $commit_hash)
-    if [ -z "${list_changed_addons:-}" ]; then
-        echo $(get_list_addons_should_run_test $addons_path $ignore_test)
-        return 0
+
+    if [ "$ignore_test" = "true" ]; then
+        echo ""
+        return
     fi
-    # Convert strings to arrays
-    IFS=',' read -r -a a_array <<<"$list_changed_addons"
-    IFS=',' read -r -a b_array <<<"$ignore_test"
 
-    # Create output variable
-    result=()
-
-    # Loop through elements of a and check if they're in b
-    for item in "${a_array[@]}"; do
-        found=false
-        for b_item in "${b_array[@]}"; do
-            if [[ "$item" == "$b_item" ]]; then
-                found=true
-                break
+    changed_files=$(git diff --name-only HEAD~1 HEAD)
+    
+    changed_addons=""
+    for file in $changed_files; do
+        if [[ $file == *"$addons_path"* ]]; then
+            addon_name=$(echo "$file" | sed "s|$addons_path/||" | cut -d'/' -f1)
+            if [ ! -z "$addon_name" ]; then
+                if [ -z "$changed_addons" ]; then
+                    changed_addons="$addon_name"
+                else
+                    changed_addons="$changed_addons,$addon_name"
+                fi
             fi
-        done
-        if ! $found; then
-            result+=("$item")
         fi
     done
 
-    # Join result with commas
-    IFS=','
-    echo "${result[*]}"
-
+    echo "$changed_addons"
 }
 
 function get_list_addons_should_run_test {
@@ -137,24 +130,11 @@ function get_list_addons_should_run_test {
 }
 
 function wait_until_odoo_shutdown {
-    # because we put --stop-after-init option to odoo command
-    # so after Odoo has finished installing and runing test cases
-    # It will shutdown automatically
-    # we just need to wait until odoo container is stopped (status=exited)
-    # and we can start analyze the log file
-    maximum_waiting_time=3600 # maximum wait time is 60', in case if there is an unexpected problem
-    odoo_container_id=$(get_odoo_container_id)
-    if [ -z $odoo_container_id ]; then
-        echo "Can't find the Odoo container, stop pipeline immediately!"
-        exit 1
-    fi
-    sleep_block=5
-    total_waited_time=0
-    while (($total_waited_time <= $maximum_waiting_time)); do
-        container_exited_id=$(docker ps -q --filter "id=$odoo_container_id" --filter "status=exited")
-        if [[ -n $container_exited_id ]]; then break; fi
-        total_waited_time=$((total_waited_time + sleep_block))
-        sleep $sleep_block
+    while true; do
+        if ! docker ps | grep -q odoo-app; then
+            break
+        fi
+        sleep 5
     done
 }
 
@@ -267,7 +247,7 @@ function get_odoo_container_id {
 }
 
 function docker_odoo_exec {
-    docker exec -u odoo $(get_odoo_container_id) bash -c "$1"
+    docker exec -u root $(get_odoo_container_id) bash -c "$1"
 }
 
 function analyze_log_file {
