@@ -7,6 +7,7 @@
 main() {
     populate_variables "$@"
     check_required_files
+    check_and_install_dependencies
     backup_file_path=$(create_backup_inside_container)
     copy_backup_to_host $backup_file_path
     delete_old_backup_files_inside_container
@@ -176,20 +177,43 @@ create_sql_backup() {
 create_filestore_backup() {
     sub_backup_folder=$1
     file_store_path="$data_dir/filestore/$db_name"
-    execute_command_inside_odoo_container "cp -r $file_store_path $sub_backup_folder/filestore"
+    
+    # Kiểm tra thư mục filestore có tồn tại không
+    if ! execute_command_inside_odoo_container "[ -d \"$file_store_path\" ]"; then
+        echo "Warning: Filestore directory $file_store_path does not exist, creating empty directory"
+        execute_command_inside_odoo_container "mkdir -p \"$sub_backup_folder/filestore\""
+        return 0
+    fi
+    
+    # Sao chép filestore
+    execute_command_inside_odoo_container "cp -r \"$file_store_path\" \"$sub_backup_folder/filestore\""
 }
 
 create_zip_file_backup() {
     sub_backup_folder=$1
     sub_backup_folder_name=$(basename $sub_backup_folder)
     new_backup_zip_file_path="${sub_backup_folder_name}.zip"
-    execute_command_inside_odoo_container "cd $sub_backup_folder && zip -rq ../${new_backup_zip_file_path} . && rm -rf $sub_backup_folder_name"
+    
+    # Cài đặt zip nếu chưa có
+    execute_command_inside_odoo_container "which zip >/dev/null 2>&1 || (apt-get update && apt-get install -y zip)"
+    
+    # Tạo file zip
+    execute_command_inside_odoo_container "cd \"$sub_backup_folder\" && zip -rq \"../${new_backup_zip_file_path}\" . && rm -rf \"$sub_backup_folder_name\""
     echo "${docker_backup_folder}/${new_backup_zip_file_path}"
 }
 
 delete_old_backup_files_inside_container() {
     # remove all temporary backup file inside container
     execute_command_inside_odoo_container "cd $docker_backup_folder && rm -rf *"
+}
+
+# Thêm hàm mới để kiểm tra và cài đặt các dependencies
+check_and_install_dependencies() {
+    # Kiểm tra và cài đặt zip
+    execute_command_inside_odoo_container "which zip >/dev/null 2>&1 || (apt-get update && apt-get install -y zip)"
+    
+    # Kiểm tra và cài đặt pg_dump
+    execute_command_inside_odoo_container "which pg_dump >/dev/null 2>&1 || (apt-get update && apt-get install -y postgresql-client)"
 }
 
 main "$@"
