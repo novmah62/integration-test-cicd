@@ -21,11 +21,12 @@ runs:
           with:
               github-token: ${{ github.token }}
               script: |
-                  const owner = context.repo.owner;
-                  const repo = context.repo.repo;
                   const check_run_id = "${{inputs.check-run-id}}";
                   const status = "${{inputs.status}}";
                   const conclusion = "${{inputs.conclusion}}";
+                  const repo_data = context.payload.repository.full_name.split("/");
+                  const owner = repo_data[0];
+                  const repo = repo_data[1];
 
                   console.log('Updating check run with:', {
                       owner,
@@ -35,14 +36,25 @@ runs:
                       conclusion
                   });
 
+                  if (!owner || !repo) {
+                      throw new Error('Repository owner or name is missing');
+                  }
+
+                  if (!check_run_id) {
+                      throw new Error('Check run ID is missing');
+                  }
+
                   try {
-                      await github.rest.checks.update({
+                      const response = await github.rest.checks.update({
                           owner,
                           repo,
                           check_run_id: parseInt(check_run_id),
                           status,
                           conclusion,
                       });
+                      
+                      console.log('Check run updated:', response.data);
+                      return response.data.id;
                   } catch (error) {
                       console.error('Error updating check run:', error);
                       throw error;
