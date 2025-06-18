@@ -24,12 +24,12 @@ env:
   ODOO_CONFIG_FILE: ${{github.workspace}}/.github/odoo/etc/odoo.conf
 
 jobs:
-  integration-test:
-    name: Integration test
-    runs-on: test-server
-    permissions:
-      checks: write
-      contents: read
+  prepare-backup:
+    name: Prepare backup
+    runs-on: ubuntu-latest
+    outputs:
+      server_latest_backup_file_path: ${{ steps.update-server-backup-path.outputs.server_latest_backup_file_path }}
+      check_run_id: ${{ steps.create-check-run.outputs.check-run-id }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +37,7 @@ jobs:
         uses: ./.github/actions/create-check-run
         id: create-check-run
         with:
-          name: "Integration test"
+          name: "Prepare backup"
 
       - name: Test Preparation
         uses: ./.github/actions/prepare-test-data
@@ -57,7 +57,7 @@ jobs:
           local_file: ${{ env.CICD_SCRIPTS_PATH }}/server-backup.sh
           server_file: ${{ env.SERVER_CICD_SCRIPT_FOLDER }}
 
-      - name: "Backup Odoo on server"
+      - name: Backup Odoo on server
         uses: ./.github/actions/ssh-script
         id: backup-on-server
         with:
@@ -69,14 +69,55 @@ jobs:
           script: |
             bash ${{ env.SERVER_CICD_SCRIPT_FOLDER }}/server-backup.sh "${{env.SERVER_DEPLOY_PATH}}" "${{env.SERVER_ODOO_DB_NAME}}" "${{env.SERVER_DB_PASSWORD}}" "${{env.ODOO_IMAGE_TAG}}" 1 "${{env.SERVER_TEMPORARY_BACKUP_PATH}}"
 
-      - name: Update server backup file path variable
+      - name: Get latest backup file path
+        id: get_backup_path
         run: |
-          latest_backup_file_path=${{ steps.backup-on-server.outputs.script-output }}
-          if [[ -n "$latest_backup_file_path" ]]; then
-            echo "SERVER_LATEST_BACKUP_FILE_PATH=$latest_backup_file_path" >> $GITHUB_ENV
+          latest_file=$(ssh -o StrictHostKeyChecking=no -p ${{env.SERVER_SSH_PORT}} -i <(echo "${{ secrets.SERVER_PRIVATE_KEY }}") ${{env.SERVER_USER}}@${{env.SERVER_HOST}} "ls ${{ env.SERVER_BACKUP_PATH }} | grep -E '${{env.SERVER_ODOO_DB_NAME}}_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\.zip' | sort -r | head -n 1")
+          if [[ -n "$latest_file" ]]; then
+            echo "::set-output name=server_backup_file::${{ env.SERVER_BACKUP_PATH }}/$latest_file"
+          else
+            echo "::set-output name=server_backup_file::${{ env.SERVER_LATEST_BACKUP_FILE_PATH }}"
           fi
 
-      - name: "Download backup file"
+      - name: Get backup file size on server
+        id: get_size
+        run: |
+          backup_file="${{ steps.get_backup_path.outputs.server_backup_file }}"
+          size=$(ssh -o StrictHostKeyChecking=no -p ${{env.SERVER_SSH_PORT}} -i <(echo "${{ secrets.SERVER_PRIVATE_KEY }}") ${{env.SERVER_USER}}@${{env.SERVER_HOST}} "stat -c %s '$backup_file'")
+          size_gb=$(echo "$size/1024/1024/1024" | bc -l)
+          if (( $(echo "$size_gb > 10" | bc -l) )); then
+            echo "use_self_hosted=true" >> $GITHUB_OUTPUT
+          else
+            echo "use_self_hosted=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Check Run
+        uses: ./.github/actions/update-check-run
+        if: ${{always()}}
+        id: update-check-run
+        with:
+          check-run-id: ${{steps.create-check-run.outputs.check-run-id}}
+          conclusion: ${{ steps.get_size.conclusion == 'success' && 'success' || 'failure' }}
+
+  integration-test:
+    name: Integration test
+    needs: prepare-backup
+    runs-on: test-server
+    permissions:
+      checks: write
+      contents: read
+    env:
+      SERVER_LATEST_BACKUP_FILE_PATH: ${{ needs.prepare-backup.outputs.server_latest_backup_file_path }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Check Run
+        uses: ./.github/actions/create-check-run
+        id: create-check-run
+        with:
+          name: "Integration test"
+
+      - name: Download backup file
         uses: ./.github/actions/scp-ssh
         with:
           direction: "download"
@@ -85,10 +126,10 @@ jobs:
           user: ${{env.SERVER_USER}}
           ssh_key_text: ${{ secrets.SERVER_PRIVATE_KEY }}
           local_file: ${{ env.LOCAL_BACKUP_FILE_PATH }}
-          server_file: ${{ env.SERVER_TEMPORARY_BACKUP_PATH }}/*.zip
+          server_file: ${{ env.SERVER_LATEST_BACKUP_FILE_PATH }}
           include_file_name: "yes"
 
-      - name: "Run Integration test"
+      - name: Run Integration test
         id: run_integration_test
         run: |
           bash ${{env.CICD_SCRIPTS_PATH}}/run-integration-test.sh "${{env.LOCAL_BACKUP_FILE_PATH}}" "test_commit" "false"
