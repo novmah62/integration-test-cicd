@@ -33,12 +33,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create Check Run
-        uses: ./.github/actions/create-check-run
-        id: create-check-run
-        with:
-          name: "Prepare backup"
-
       - name: Test Preparation
         uses: ./.github/actions/prepare-test-data
 
@@ -91,14 +85,6 @@ jobs:
             echo "use_self_hosted=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Update Check Run
-        uses: ./.github/actions/update-check-run
-        if: ${{always()}}
-        id: update-check-run
-        with:
-          check-run-id: ${{steps.create-check-run.outputs.check-run-id}}
-          conclusion: ${{ steps.get_size.conclusion == 'success' && 'success' || 'failure' }}
-
   integration-test:
     name: Integration test
     needs: prepare-backup
@@ -110,12 +96,6 @@ jobs:
       SERVER_LATEST_BACKUP_FILE_PATH: ${{ needs.prepare-backup.outputs.server_latest_backup_file_path }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Create Check Run
-        uses: ./.github/actions/create-check-run
-        id: create-check-run
-        with:
-          name: "Integration test"
 
       - name: Download backup file
         uses: ./.github/actions/scp-ssh
@@ -133,11 +113,3 @@ jobs:
         id: run_integration_test
         run: |
           bash ${{env.CICD_SCRIPTS_PATH}}/run-integration-test.sh "${{env.LOCAL_BACKUP_FILE_PATH}}" "test_commit" "false"
-
-      - name: Update Check Run
-        uses: ./.github/actions/update-check-run
-        if: ${{always()}}
-        id: update-check-run
-        with:
-          check-run-id: ${{steps.create-check-run.outputs.check-run-id}}
-          conclusion: ${{ steps.run_integration_test.conclusion == 'success' && 'success' || 'failure' }}
