@@ -6,10 +6,10 @@ on:
 env:
   # Các biến môi trường cố định cho test
   SERVER_HOST: 192.168.98.123
-  SERVER_USER: ubuntu
+  SERVER_USER: gh-runner
   SERVER_SSH_PORT: 22
   SERVER_DEPLOY_PATH: /opt/odoo
-  SERVER_ODOO_URL: http://localhost:8069
+  SERVER_ODOO_URL: http://192.168.98.123:8069
   SERVER_ODOO_DB_NAME: odoo
   SERVER_DB_PASSWORD: odoo
   ODOO_IMAGE_TAG: 13
@@ -88,7 +88,7 @@ jobs:
   integration-test:
     name: Integration test
     needs: prepare-backup
-    runs-on: test-server
+    runs-on: ${{ needs.prepare-backup.outputs.use_self_hosted == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     permissions:
       checks: write
       contents: read
