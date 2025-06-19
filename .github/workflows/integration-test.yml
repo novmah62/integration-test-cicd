@@ -73,30 +73,47 @@ jobs:
           fi
 
       - name: Check backup size and set output
+        id: get_size
         env:
           SERVER_HOST: ${{ env.SERVER_HOST }}
           SERVER_USER: ${{ env.SERVER_USER }}
           SERVER_SSH_PORT: ${{ env.SERVER_SSH_PORT }}
-          BACKUP_PATH: ${{ steps.backup-on-server.outputs.script-output }}
+          BACKUP_PATH: ${{ steps.update-server-backup-path.outputs.server_latest_backup_file_path }}
         run: |
+          # Debug env
+          echo "DEBUG: SERVER_HOST='$SERVER_HOST', SERVER_USER='$SERVER_USER', BACKUP_PATH='$BACKUP_PATH'"
           if [[ -z "$SERVER_HOST" || -z "$SERVER_USER" || -z "$BACKUP_PATH" ]]; then
             echo "Error: SERVER_HOST, SERVER_USER hoặc BACKUP_PATH trống"
             exit 1
           fi
 
+          # SSH connectivity
+          ssh -o StrictHostKeyChecking=no -p "$SERVER_SSH_PORT" "$SERVER_USER@$SERVER_HOST" "echo SSH_OK" >/dev/null 2>&1 || {
+            echo "Error: SSH connection failed"
+            exit 1
+          }
+
+          # Kiểm tra file tồn tại
+          if ! ssh -o StrictHostKeyChecking=no -p "$SERVER_SSH_PORT" "$SERVER_USER@$SERVER_HOST" "[ -f '$BACKUP_PATH' ]"; then
+            echo "Error: File không tồn tại trên server: $BACKUP_PATH"
+            exit 1
+          fi
+
+          # Lấy kích thước
           size=$(ssh -o StrictHostKeyChecking=no -p "$SERVER_SSH_PORT" "$SERVER_USER@$SERVER_HOST" "stat -c %s '$BACKUP_PATH'" 2>/dev/null || echo "")
+          echo "DEBUG: size='$size'"
           if ! [[ "$size" =~ ^[0-9]+$ ]]; then
             echo "Error: Không lấy được size hoặc invalid: '$size'"
             exit 1
           fi
 
+          # So sánh threshold 10 GiB
           threshold=$((10 * 1024 * 1024 * 1024))
           if (( size > threshold )); then
             echo "use_self_hosted=true" >> "$GITHUB_OUTPUT"
           else
             echo "use_self_hosted=false" >> "$GITHUB_OUTPUT"
           fi
-  
   
 
   integration-test:
