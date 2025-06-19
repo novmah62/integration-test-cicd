@@ -26,7 +26,7 @@ env:
 jobs:
   prepare-backup:
     name: Prepare backup
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       server_latest_backup_file_path: ${{ steps.update-server-backup-path.outputs.server_latest_backup_file_path }}
       check_run_id: ${{ steps.create-check-run.outputs.check-run-id }}
