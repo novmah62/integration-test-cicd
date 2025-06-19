@@ -72,28 +72,33 @@ jobs:
             echo "SERVER_LATEST_BACKUP_FILE_PATH=$latest_backup_file_path" >> $GITHUB_ENV
           fi
 
-      - name: Get backup file size on server
-        id: get_size
-        run: |
-          backup_file="${{ env.SERVER_LATEST_BACKUP_FILE_PATH }}"
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-          if [[ -z "$backup_file" ]]; then
-            echo "Error: SERVER_LATEST_BACKUP_FILE_PATH is empty. Cannot get file size."
+
+      - name: Check backup size and set output
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ubuntu
+          SERVER_SSH_PORT: 22
+          BACKUP_PATH: /tmp/odoo/backup/bep/main/odoo_2025-06-19_03-45-27.zip
+        run: |
+          
+          size=$(ssh -o StrictHostKeyChecking=no -p $SERVER_SSH_PORT $SERVER_USER@$SERVER_HOST "stat -c %s '$BACKUP_PATH'" || echo "")
+          if ! [[ "$size" =~ ^[0-9]+$ ]]; then
+            echo "Error: Could not get size or invalid: '$size'"
             exit 1
           fi
-
-          size=$(ssh -o StrictHostKeyChecking=no -p ${{env.SERVER_SSH_PORT}} -i <(echo "${{ secrets.SERVER_PRIVATE_KEY }}") ${{env.SERVER_USER}}@${{env.SERVER_HOST}} "stat -c %s '$backup_file'")
-
-          if ! [[ "$size" =~ ^[0-9]+$ ]]; then
-              echo "Error: Could not get file size or size is invalid: '$size'"
-              exit 1
-          fi
-
-          if (( $(echo "$size_gb > 10" | bc -l) )); then
-            echo "use_self_hosted=true" >> "$GITHUB_OUTPUT" 
+          # Compare bytes directly:
+          threshold=$((10*1024*1024*1024))
+          if (( size > threshold )); then
+            echo "use_self_hosted=true" >> "$GITHUB_OUTPUT"
           else
             echo "use_self_hosted=false" >> "$GITHUB_OUTPUT"
           fi
+  
 
   integration-test:
     name: Integration test
