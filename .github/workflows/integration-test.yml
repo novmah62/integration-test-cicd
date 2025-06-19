@@ -72,12 +72,6 @@ jobs:
             echo "SERVER_LATEST_BACKUP_FILE_PATH=$latest_backup_file_path" >> $GITHUB_ENV
           fi
 
-      - name: Setup SSH agent
-        uses: webfactory/ssh-agent@v0.9.1
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-
       - name: Check backup size and set output
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
