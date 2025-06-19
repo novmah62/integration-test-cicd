@@ -74,9 +74,9 @@ jobs:
 
       - name: Check backup size and set output
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ubuntu
-          SERVER_SSH_PORT: ${{ secrets.SERVER_SSH_PORT }}
+          SERVER_HOST: ${{ env.SERVER_HOST }}
+          SERVER_USER: ${{ env.SERVER_USER }}
+          SERVER_SSH_PORT: ${{ env.SERVER_SSH_PORT }}
           BACKUP_PATH: ${{ steps.backup-on-server.outputs.script-output }}
         run: |
           if [[ -z "$SERVER_HOST" || -z "$SERVER_USER" || -z "$BACKUP_PATH" ]]; then
