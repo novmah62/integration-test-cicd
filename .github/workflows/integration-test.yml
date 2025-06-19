@@ -130,7 +130,8 @@ jobs:
   integration-test:
     name: Integration test
     needs: prepare-backup
-    runs-on: ${{ needs.prepare-backup.outputs.use_self_hosted == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+#    runs-on: ${{ needs.prepare-backup.outputs.use_self_hosted == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: self-hosted
     permissions:
       checks: write
       contents: read
