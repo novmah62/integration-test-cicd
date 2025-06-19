@@ -140,6 +140,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug scp parameters
+        run: |
+          echo "DEBUG: SERVER_HOST='${{ env.SERVER_HOST }}'"
+          echo "DEBUG: SERVER_SSH_PORT='${{ env.SERVER_SSH_PORT }}'"
+          echo "DEBUG: SERVER_USER='${{ env.SERVER_USER }}'"
+          echo "DEBUG: LOCAL_BACKUP_FILE_PATH='${{ env.LOCAL_BACKUP_FILE_PATH }}'"
+          echo "DEBUG: SERVER_LATEST_BACKUP_FILE_PATH='${{ env.SERVER_LATEST_BACKUP_FILE_PATH }}'"
+
       - name: Download backup file
         uses: ./.github/actions/scp-ssh
         with:
