@@ -157,7 +157,7 @@ jobs:
           user: ${{env.SERVER_USER}}
           ssh_key_text: ${{ secrets.SERVER_PRIVATE_KEY }}
           local_file: ${{ env.LOCAL_BACKUP_FILE_PATH }}
-          server_file: ${{ env.SERVER_LATEST_BACKUP_FILE_PATH }}
+          server_file: /tmp/odoo/backup/bep/main/odoo_2025-06-19_03-45-27.zip
           include_file_name: "yes"
 
       - name: Run Integration test
